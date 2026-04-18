@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CineVault Pro | Elite Archive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --surface: #111112;
+            --accent: #e50914;
+            --text: #ffffff;
+            --text-dim: #94949b;
+            --border: rgba(255, 255, 255, 0.08);
+            --glass: rgba(255, 255, 255, 0.05);
+            --success: #00ff88;
+        }
+
+        body.light-mode {
+            --bg: #f4f4f7;
+            --surface: #ffffff;
+            --text: #050505;
+            --text-dim: #66666e;
+            --border: rgba(0, 0, 0, 0.1);
+            --glass: rgba(0, 0, 0, 0.03);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+
+        /* --- SYSTEM OVERLAYS --- */
+        #loading-overlay { position: fixed; inset: 0; background: #050505; z-index: 6000; display: flex; justify-content: center; align-items: center; transition: 0.5s; }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--glass); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- NAVIGATION --- */
+        nav { width: 280px; background: var(--surface); height: 100vh; position: fixed; border-right: 1px solid var(--border); padding: 2.5rem; display: flex; flex-direction: column; z-index: 100; transition: background 0.3s; }
+        .sidebar-logo { font-size: 1.8rem; font-weight: 900; color: var(--accent); margin-bottom: 3rem; letter-spacing: -1.5px; }
+        .nav-item { list-style: none; padding: 14px 18px; margin-bottom: 4px; cursor: pointer; color: var(--text-dim); border-radius: 14px; transition: 0.2s; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-item:hover { background: var(--glass); color: var(--text); }
+        .nav-item.active { background: var(--accent); color: white; box-shadow: 0 10px 20px rgba(229, 9, 20, 0.2); }
+
+        /* --- THEME & FOOTER --- */
+        .theme-switch { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; padding: 10px 18px; cursor: pointer; border-radius: 12px; background: var(--glass); font-size: 0.7rem; font-weight: 800; color: var(--text-dim); }
+        .sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.7rem; color: var(--text-dim); }
+        .status-dot { display: inline-block; width: 6px; height: 6px; background: var(--success); border-radius: 50%; margin-right: 8px; box-shadow: 0 0 10px var(--success); }
+        
+        .creator-signature { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.03); font-family: 'Courier New', monospace; font-size: 0.6rem; color: rgba(255, 255, 255, 0.15); text-transform: uppercase; letter-spacing: 2px; line-height: 1.6; }
+        body.light-mode .creator-signature { color: rgba(0,0,0,0.2); border-top-color: rgba(0,0,0,0.05); }
+        .creator-name { color: var(--accent); font-weight: 900; opacity: 0.6; }
+
+        /* --- MAIN CONTENT --- */
+        main { margin-left: 280px; width: calc(100% - 280px); padding: 3rem; position: relative; transition: margin 0.3s, width 0.3s; }
+        #view-title { font-size: 3rem; margin-bottom: 2rem; font-weight: 900; letter-spacing: -1.5px; }
+        #search-box { background: var(--surface); border: 1px solid var(--border); padding: 18px 28px; border-radius: 50px; width: 100%; max-width: 500px; color: var(--text); outline: none; margin-bottom: 3rem; transition: 0.3s; }
+        
+        .profile-zone { position: absolute; top: 3rem; right: 3rem; display: flex; align-items: center; gap: 15px; cursor: pointer; z-index: 10; }
+        .profile-circle { width: 45px; height: 45px; background: var(--glass); border: 1px solid var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--accent); }
+
+        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.5rem; }
+        .movie-card { background: var(--surface); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); cursor: pointer; transition: 0.4s; position: relative; }
+        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+        .card-meta { padding: 1rem; font-size: 0.75rem; font-weight: 800; text-align: center; color: var(--text); }
+
+        /* --- FIXED LEADERBOARD LAYOUT --- */
+        .rank-container { max-width: 800px; margin: 0 auto; background: var(--surface); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .rank-header { display: grid; grid-template-columns: 80px 1fr 150px; padding: 20px 30px; background: var(--glass); border-bottom: 1px solid var(--border); font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); }
+        .rank-row { display: grid; grid-template-columns: 80px 1fr 150px; align-items: center; padding: 25px 30px; border-bottom: 1px solid var(--border); transition: 0.2s; }
+        .rank-row:last-child { border-bottom: none; }
+        .rank-row:hover { background: var(--glass); }
+        .rank-number { font-weight: 900; font-size: 1.1rem; color: var(--accent); font-style: italic; }
+        .rank-name { font-weight: 800; color: var(--text); font-size: 1rem; letter-spacing: -0.5px; }
+        .rank-count { text-align: right; font-weight: 900; color: var(--success); font-size: 1.2rem; display: flex; flex-direction: column; }
+        .rank-unit { font-size: 0.55rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+        /* --- MOBILE ADAPTATION --- */
+        @media (max-width: 850px) {
+            nav { width: 100%; height: 70px; bottom: 0; left: 0; flex-direction: row; padding: 0 10px; border-right: none; border-top: 1px solid var(--border); position: fixed; top: auto; }
+            .sidebar-logo, .sidebar-footer { display: none; }
+            nav ul { display: flex; width: 100%; justify-content: space-around; align-items: center; }
+            .nav-item { padding: 10px; margin-bottom: 0; font-size: 0.6rem; text-align: center; }
+            .nav-item.active { box-shadow: none; }
+            
+            main { margin-left: 0; width: 100%; padding: 1.5rem; padding-bottom: 100px; }
+            #view-title { font-size: 2.2rem; margin-top: 3.5rem; }
+            .profile-zone { top: 1rem; right: 1.5rem; }
+            .profile-zone span { display: none; }
+            
+            .rank-header, .rank-row { grid-template-columns: 50px 1fr 100px; padding: 15px 20px; }
+            .rank-number { font-size: 0.9rem; }
+            .rank-name { font-size: 0.85rem; }
+            .rank-count { font-size: 1rem; }
+
+            .modal-content { flex-direction: column; width: 90%; max-height: 90vh; overflow-y: auto; }
+            .modal-poster { width: 100%; height: 300px; border-right: none; border-bottom: 1px solid var(--border); }
+        }
+
+        #detail-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(25px); padding: 20px; }
+        .modal-content { background: var(--surface); width: 95%; max-width: 900px; border-radius: 30px; display: flex; overflow: hidden; border: 1px solid var(--border); position: relative; }
+        #rating-picker { position: absolute; inset: 0; background: var(--surface); opacity: 0.98; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 50; padding: 20px; text-align: center; }
+        .star-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 1.5rem 0; }
+        .star-input { font-size: 1.8rem; cursor: pointer; color: var(--text-dim); }
+        .star-input.active { color: #ffd700; }
+        .watched-btn { background: var(--accent); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 0.8rem; }
+        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 25px; border-radius: 50px; font-weight: 900; display: none; z-index: 9999; font-size: 0.7rem; }
+    </style>
+</head>
+<body>
+
+    <div id="loading-overlay"><div class="spinner"></div></div>
+    <div id="toast">SYSTEM UPDATED</div>
+
+    <div id="auth-screen" style="position:fixed; inset:0; background:#050505; z-index:5000; display:none; justify-content:center; align-items:center; padding: 20px;">
+        <div style="background:#111112; padding:2.5rem; border-radius:30px; width:100%; max-width:400px; border:1px solid rgba(255,255,255,0.08); text-align:center;">
+            <h1 style="color:var(--accent); font-weight:900; letter-spacing:-1.5px; margin-bottom:2rem; font-size:2rem;">CINEVAULT</h1>
+            <input type="email" id="email" style="width:100%; padding:15px; background:black; border:1px solid rgba(255,255,255,0.08); border-radius:12px; color:white; margin-bottom:1rem; outline:none;" placeholder="Email">
+            <input type="password" id="password" style="width:100%; padding:15px; background:black; border:1px solid rgba(255,255,255,0.08); border-radius:12px; color:white; margin-bottom:1.5rem; outline:none;" placeholder="Key">
+            <button id="auth-btn" class="watched-btn" style="width:100%">ACCESS SYSTEM</button>
+            <p id="auth-toggle" style="margin-top:1.5rem; cursor:pointer; font-size:0.75rem; opacity:0.5; font-weight:700; color:white;">CREATE ACCOUNT</p>
+        </div>
+    </div>
+
+    <div id="username-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(15px); z-index:7000; display:none; justify-content:center; align-items:center; padding: 20px;">
+        <div style="background:var(--surface); padding:2rem; border-radius:30px; border:1px solid var(--border); width:100%; max-width:350px; text-align:center;">
+            <div style="font-size:2rem; margin-bottom:1rem;">✨</div>
+            <h2 style="font-weight:900; margin-bottom:0.5rem;">Identify Yourself</h2>
+            <input type="text" id="new-username-input" style="width:100%; padding:15px; background:var(--bg); border:1px solid var(--border); border-radius:15px; color:var(--text); margin-bottom:1.5rem; outline:none; text-align:center; font-weight:800;" placeholder="New Alias...">
+            <div style="display:flex; gap:10px;">
+                <button onclick="closeUsernameModal()" class="watched-btn" style="flex:1; background:var(--glass); color:var(--text); font-size:0.6rem;">Abort</button>
+                <button onclick="saveUsername()" class="watched-btn" style="flex:2; font-size:0.6rem;">Initialize</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" style="display:none; width:100%;">
+        <nav>
+            <div class="sidebar-logo">CV PRO</div>
+            <ul style="flex:1">
+                <li class="nav-item active" id="nav-discover">Feed</li>
+                <li class="nav-item" id="nav-library">Vault</li>
+                <li class="nav-item" id="nav-ai">Oracle</li>
+                <li class="nav-item" id="nav-actors">Stars</li>
+                <li class="nav-item" id="nav-leaderboard">Ranks</li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="theme-switch" id="theme-toggle">🌙 NIGHT</div>
+                <div><span class="status-dot"></span> ENCRYPTED SESSION</div>
+                <div style="font-weight:900; color:var(--text); font-size:0.75rem; margin-top:5px;">OPERATIVE: <span id="footer-name">---</span></div>
+                <div class="creator-signature">SYS.VER // 2.0.26<br>DESIGNED BY <span class="creator-name">KYLIE</span></div>
+                <button id="logout-btn" style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:800; font-size: 0.65rem; text-transform: uppercase; margin-top: 10px;">Logout</button>
+            </div>
+        </nav>
+
+        <main>
+            <div class="profile-zone" id="profile-btn">
+                <span id="display-name" style="font-weight:800; font-size:0.85rem; opacity:0.7;">Agent</span>
+                <div class="profile-circle">ID</div>
+            </div>
+            <h1 id="view-title">The Feed</h1>
+            <input type="text" id="search-box" placeholder="Search archives...">
+            <div id="grid" class="movie-grid"></div>
+            <div id="sentinel" style="height:80px;"></div>
+        </main>
+    </div>
+
+    <div id="detail-modal"><div class="modal-content" id="modal-content"></div></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, query, orderBy, limit, onSnapshot, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const config = { apiKey: "AIzaSyCo6Hm3bAdrbOnkSi-PgYXmsWOgGT02ATE", authDomain: "cinevault-2bbf9.firebaseapp.com", projectId: "cinevault-2bbf9", storageBucket: "cinevault-2bbf9.firebasestorage.app", messagingSenderId: "246273954206", appId: "1:246273954206:web:5ea0fd07663b112d98068f" };
+        const app = initializeApp(config);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const TMDB_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmMTllZTc4NTU4NmM3Yzg5Y2FjYWY0NDI3ZWJjOTc3OCIsIm5iZiI6MTc3NjUyNTg3MS44NzksInN1YiI6IjY5ZTNhMjJmNzU1MjgwYzczY2FkZjI0YyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.7Izs3PnVV9girV-MkYTFCMtQQ0BZymOJdntTH3gRsP0";
+
+        let page = 1, currentTab = 'discover', isFetching = false, isLogin = true, library = [], activeRating = 0;
+
+        document.getElementById('theme-toggle').onclick = () => {
+            const isLight = document.body.classList.toggle('light-mode');
+            localStorage.setItem('cv-theme', isLight ? 'light' : 'dark');
+        };
+        if(localStorage.getItem('cv-theme') === 'light') document.body.classList.add('light-mode');
+
+        onAuthStateChanged(auth, u => {
+            document.getElementById('loading-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
+            if (u) {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                document.getElementById('display-name').innerText = u.displayName || 'Agent';
+                document.getElementById('footer-name').innerText = (u.displayName || 'AGENT').toUpperCase();
+                syncVault(); nav('discover'); 
+            } else {
+                document.getElementById('auth-screen').style.display = 'flex';
+                document.getElementById('app').style.display = 'none';
+            }
+        });
+
+        document.getElementById('auth-btn').onclick = async () => {
+            const e = document.getElementById('email').value, p = document.getElementById('password').value;
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                if(isLogin) await signInWithEmailAndPassword(auth, e, p);
+                else { await createUserWithEmailAndPassword(auth, e, p); document.getElementById('profile-btn').click(); }
+            } catch(err) { alert(err.message); }
+        };
+
+        document.getElementById('profile-btn').onclick = () => {
+            document.getElementById('username-overlay').style.display = 'flex';
+            document.getElementById('new-username-input').value = auth.currentUser.displayName || "";
+        };
+
+        window.closeUsernameModal = () => document.getElementById('username-overlay').style.display = 'none';
+
+        window.saveUsername = async () => {
+            const newName = document.getElementById('new-username-input').value.trim();
+            if (newName) {
+                await updateProfile(auth.currentUser, { displayName: newName });
+                await setDoc(doc(db, "leaderboard", auth.currentUser.uid), { name: newName }, { merge: true });
+                document.getElementById('display-name').innerText = newName;
+                document.getElementById('footer-name').innerText = newName.toUpperCase();
+                showToast("IDENTITY UPDATED"); closeUsernameModal();
+            }
+        };
+
+        async function syncVault() {
+            if(!auth.currentUser) return;
+            const q = query(collection(db, "users", auth.currentUser.uid, "library"), orderBy("timestamp", "desc"));
+            onSnapshot(q, (snap) => {
+                library = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+                if(currentTab === 'library') renderLibrary();
+                if(currentTab === 'discover') fetchMedia(); 
+            });
+        }
+
+        const nav = (t) => {
+            currentTab = t; page = 1;
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(`nav-${t}`).classList.add('active');
+            document.getElementById('grid').innerHTML = "";
+            const s = document.getElementById('search-box');
+            s.style.display = (t === 'discover' || t === 'actors') ? 'block' : 'none';
+            if(t === 'discover') { document.getElementById('view-title').innerText = 'The Feed'; fetchMedia(); }
+            else if (t === 'library') { document.getElementById('view-title').innerText = 'The Vault'; renderLibrary(); }
+            else if (t === 'ai') { document.getElementById('view-title').innerText = 'Oracle'; fetchAI(); }
+            else if (t === 'actors') { document.getElementById('view-title').innerText = 'Star Map'; renderStarMap(); }
+            else if (t === 'leaderboard') { document.getElementById('view-title').innerText = 'Global Ranks'; renderLeaderboard(); }
+            window.scrollTo(0,0);
+        };
+
+        ['discover', 'library', 'ai', 'actors', 'leaderboard'].forEach(id => { 
+            document.getElementById(`nav-${id}`).onclick = () => nav(id); 
+        });
+
+        async function fetchMedia(append = false) {
+            if(isFetching) return; isFetching = true;
+            const res = await fetch(`https://api.themoviedb.org/3/movie/popular?page=${page}`, { headers: { Authorization: `Bearer ${TMDB_KEY}` } });
+            const data = await res.json();
+            renderGrid(data.results, append);
+            isFetching = false;
+        }
+
+        async function fetchAI() {
+            const grid = document.getElementById('grid');
+            if(library.length === 0) { grid.innerHTML = '<p style="text-align:center; padding:5rem; opacity:0.4;">Vault empty.</p>'; return; }
+            const seed = library[Math.floor(Math.random()*library.length)];
+            const res = await fetch(`https://api.themoviedb.org/3/${seed.type}/${seed.id}/recommendations`, { headers: { Authorization: `Bearer ${TMDB_KEY}` } });
+            const d = await res.json(); renderGrid(d.results, false);
+        }
+
+        async function renderStarMap() {
+            const grid = document.getElementById('grid');
+            if(library.length === 0) { grid.innerHTML = '<p style="text-align:center; padding:5rem; opacity:0.4;">Vault empty.</p>'; return; }
+            grid.innerHTML = '<div style="text-align:center; padding:4rem; opacity:0.5;">Analyzing...</div>';
+            let allActors = [];
+            const promises = library.map(item => fetch(`https://api.themoviedb.org/3/${item.type}/${item.id}/credits`, { headers: { Authorization: `Bearer ${TMDB_KEY}` } }).then(r => r.json()));
+            const results = await Promise.all(promises);
+            results.forEach(data => { if(data.cast) allActors.push(...data.cast.slice(0, 5)); });
+            const uniqueActors = Array.from(new Map(allActors.map(a => [a.id, a])).values());
+            const html = uniqueActors.map(a => `
+                <div class="movie-card" onclick="fetchActorWorks(${a.id})">
+                    <img src="https://image.tmdb.org/t/p/w500${a.profile_path}" onerror="this.src='https://via.placeholder.com/500x750?text=No+Profile'">
+                    <div class="card-meta">${a.name}</div>
+                </div>`).join('');
+            grid.innerHTML = html;
+        }
+
+        function renderGrid(items, append) {
+            const filtered = items.filter(m => !library.some(l => l.id == m.id));
+            const html = filtered.map(m => {
+                const img = m.poster_path || m.profile_path || m.path;
+                if(!img) return '';
+                return `
+                <div class="movie-card" onclick="${m.profile_path ? `fetchActorWorks(${m.id})` : `openDetails(${m.id}, '${m.media_type || 'movie'}')`}">
+                    <img src="https://image.tmdb.org/t/p/w500${img}">
+                    <div class="card-meta">${m.title || m.name}</div>
+                </div>`;
+            }).join('');
+            const g = document.getElementById('grid');
+            if(append) g.insertAdjacentHTML('beforeend', html); else g.innerHTML = html;
+        }
+
+        function renderLibrary() {
+            const html = library.map(m => `
+                <div class="movie-card">
+                    <div style="position:absolute; top:12px; right:12px; background:var(--success); color:black; padding:4px 10px; border-radius:8px; font-weight:900; font-size:0.7rem; z-index:1;">★ ${m.rating}</div>
+                    <img src="https://image.tmdb.org/t/p/w500${m.path}">
+                    <div class="card-meta">${m.title}</div>
+                </div>`).join('');
+            document.getElementById('grid').innerHTML = html || '<p style="text-align:center; width:100%; opacity:0.4;">Vault Empty.</p>';
+        }
+
+        window.openDetails = async (id, type) => {
+            const res = await fetch(`https://api.themoviedb.org/3/${type}/${id}`, { headers: { Authorization: `Bearer ${TMDB_KEY}` } });
+            const m = await res.json();
+            document.getElementById('modal-content').innerHTML = `
+                <div style="position:absolute; top:20px; right:20px; cursor:pointer; font-size:2rem; z-index:100; color:var(--text);" onclick="closeModal()">×</div>
+                <div id="rating-picker">
+                    <h3 style="font-weight:900; color:var(--text);">RANK ARCHIVE</h3>
+                    <div class="star-row">${[1,2,3,4,5,6,7,8,9,10].map(n => `<span class="star-input" data-val="${n}" onclick="setStar(${n})">★</span>`).join('')}</div>
+                    <button class="watched-btn" onclick="submitRating(${id}, '${type}', '${m.title || m.name}', '${m.poster_path}')">CONFIRM</button>
+                </div>
+                <img src="https://image.tmdb.org/t/p/w780${m.poster_path}" class="modal-poster">
+                <div class="modal-info">
+                    <h2 style="font-size:1.8rem; font-weight:900; margin-bottom:1rem; color:var(--text);">${m.title || m.name}</h2>
+                    <p style="color:var(--text-dim); font-size:0.8rem; margin-bottom:1.5rem;">${m.overview}</p>
+                    <button class="watched-btn" onclick="toggleRating(true)">ARCHIVE</button>
+                </div>`;
+            document.getElementById('detail-modal').style.display = 'flex';
+        };
+
+        window.toggleRating = (s) => document.getElementById('rating-picker').style.display = s ? 'flex' : 'none';
+        window.setStar = (v) => { activeRating = v; document.querySelectorAll('.star-input').forEach(s => s.classList.toggle('active', s.dataset.val <= v)); };
+        window.closeModal = () => { document.getElementById('detail-modal').style.display = 'none'; activeRating = 0; };
+
+        window.submitRating = async (id, type, title, path) => {
+            if(!activeRating) return;
+            const uid = auth.currentUser.uid;
+            await setDoc(doc(db, "users", uid, "library", id.toString()), { id, title, path, type, rating: activeRating, timestamp: serverTimestamp() });
+            await setDoc(doc(db, "leaderboard", uid), { name: auth.currentUser.displayName, count: increment(1) }, { merge: true });
+            showToast("VAULT UPDATED"); closeModal();
+        };
+
+        window.fetchActorWorks = async (id) => {
+            const res = await fetch(`https://api.themoviedb.org/3/person/${id}/combined_credits`, { headers: { Authorization: `Bearer ${TMDB_KEY}` } });
+            const data = await res.json();
+            document.getElementById('view-title').innerText = "Credits";
+            renderGrid(data.cast.slice(0, 40), false);
+        };
+
+        function renderLeaderboard() {
+            const q = query(collection(db, "leaderboard"), orderBy("count", "desc"), limit(10));
+            onSnapshot(q, snap => {
+                let html = '<div class="rank-container">';
+                html += `<div class="rank-header"><span>Rank</span><span>Operative</span><span style="text-align:right">Score</span></div>`;
+                snap.docs.forEach((d, i) => {
+                    const data = d.data();
+                    const isMe = d.id === auth.currentUser.uid;
+                    html += `
+                        <div class="rank-row" style="${isMe ? 'border-left: 4px solid var(--accent); background: rgba(229,9,20,0.05);' : ''}">
+                            <span class="rank-number">#${i + 1}</span>
+                            <span class="rank-name">${data.name || 'Anonymous'} ${isMe ? '<span style="color:var(--accent); font-size:0.6rem; margin-left:8px; vertical-align:middle;">(YOU)</span>' : ''}</span>
+                            <span class="rank-count">
+                                ${data.count || 0}
+                                <span class="rank-unit">Archives</span>
+                            </span>
+                        </div>`;
+                });
+                document.getElementById('grid').innerHTML = html + '</div>';
+            });
+        }
+
+        document.getElementById('search-box').oninput = (e) => {
+            const q = e.target.value; if(!q) return;
+            const t = currentTab === 'actors' ? 'person' : 'multi';
+            fetch(`https://api.themoviedb.org/3/search/${t}?query=${q}`, { headers: { Authorization: `Bearer ${TMDB_KEY}` } })
+            .then(r => r.json()).then(d => renderGrid(d.results, false));
+        };
+
+        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2000); }
+        document.getElementById('logout-btn').onclick = () => signOut(auth);
+        new IntersectionObserver(e => { if(e[0].isIntersecting && !isFetching && currentTab==='discover') { page++; fetchMedia(true); } }).observe(document.getElementById('sentinel'));
+    </script>
+</body>
+</html>
